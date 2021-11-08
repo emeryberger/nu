@@ -1,6 +1,6 @@
 # nu
 
-> **Nu** (Yiddish): A multipurpose interjection analogous to "well?", "so?", or "so what?"
+> **Nu** (Yiddish: נו): A multipurpose interjection analogous to "well?", "so?", or "so what?"
 > 
 > [Wikipedia](https://en.wikipedia.org/wiki/List_of_English_words_of_Yiddish_origin#N)
 
