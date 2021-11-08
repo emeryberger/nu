@@ -42,25 +42,18 @@ extern "C" {
 
   void allocationIntensityTimer(int)
   {
-    static std::atomic<bool> inTimer { false };
-    if (inTimer) {
-      fprintf(stderr, "IN TIMER\n");
-      return;
-    }
-    inTimer = true;
     total_sampled_count++;
     if (in_malloc || in_free) {
       sampled_malloc_count++;
-      if (sampled_malloc_count % 10 == 0) {
-	fprintf(stderr, "malloc ratio = %lf (%lu / %lu); mallocs=%lu, frees=%lu\n",
-		(double) sampled_malloc_count / (double) total_sampled_count,
-		sampled_malloc_count,
-		total_sampled_count,
-		actual_malloc_count,
-		actual_free_count);
-      }
     }
-    inTimer = false;
+    if (total_sampled_count % 100 == 0) {
+      fprintf(stderr, "malloc ratio = %lf (%lu / %lu); mallocs=%lu, frees=%lu\n",
+	      (double) sampled_malloc_count / (double) total_sampled_count,
+	      sampled_malloc_count,
+	      total_sampled_count,
+	      actual_malloc_count,
+	      actual_free_count);
+    }
   }
 }
 
@@ -74,17 +67,17 @@ extern "C" {
   {
     signal(SIGALRM, allocationIntensityTimer);
     struct itimerval tm;
-    tm.it_value.tv_sec = 1;
-    tm.it_value.tv_usec = 0;
+    tm.it_value.tv_sec = 0;
+    tm.it_value.tv_usec = 2000;
     tm.it_interval.tv_sec = 0;
-    tm.it_interval.tv_usec = 500;
+    tm.it_interval.tv_usec = 2000;
     setitimer(ITIMER_REAL, &tm, nullptr);
     //      setitimer(ITIMER_VIRTUAL, &tm, nullptr);
     ///      signal(SIGVTALRM, handleTimer);
     // signal(SIGVTALRM, allocationIntensityTimer);
   }
   
-  void * xxmalloc(size_t sz) {
+  void * __attribute__((always_inline)) xxmalloc(size_t sz) {
     if (!initialized) {
       initialized = true;
       initialize_me();
@@ -96,7 +89,7 @@ extern "C" {
     return ptr;
   }
   
-  void xxfree(void * ptr) {
+  void __attribute__((always_inline)) xxfree(void * ptr) {
     if (!initialized) {
       initialized = true;
       initialize_me();
