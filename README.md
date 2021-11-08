@@ -9,3 +9,5 @@
 A simple tool for computing allocation intensity (that is, time spent in `malloc` and `free`).
 
 By [Emery Berger](https://emeryberger.com)
+
+_currently MacOS only_
