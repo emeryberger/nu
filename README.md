@@ -13,3 +13,11 @@ the raw total count of `malloc`s and `free`s).
 By [Emery Berger](https://emeryberger.com)
 
 _NOTE: this is currently MacOS only._
+
+## Usage
+
+Build with `make`, then:
+
+```
+DYLD_INSERT_LIBRARIES=./libnu.dylib program_to_profile
+```
