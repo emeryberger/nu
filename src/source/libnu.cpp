@@ -32,11 +32,13 @@ extern "C" void _putchar(char ch) { ::write(1, (void *)&ch, 1); }
 
 static bool in_malloc { false };
 static bool in_free { false };
+static unsigned long actual_malloc_count { 0 };
+static unsigned long actual_free_count { 0 };
 
 extern "C" {
 
-  static unsigned long mallocCount { 0 };
-  static unsigned long totalCount { 0 };
+  static unsigned long sampled_malloc_count { 0 };
+  static unsigned long total_sampled_count { 0 };
 
   void allocationIntensityTimer(int)
   {
@@ -46,11 +48,16 @@ extern "C" {
       return;
     }
     inTimer = true;
-    totalCount++;
+    total_sampled_count++;
     if (in_malloc || in_free) {
-      mallocCount++;
-      if (mallocCount % 10 == 0) {
-	fprintf(stderr, "malloc ratio = %lf (%lu / %lu)\n", (double) mallocCount / (double) totalCount, mallocCount, totalCount);
+      sampled_malloc_count++;
+      if (sampled_malloc_count % 10 == 0) {
+	fprintf(stderr, "malloc ratio = %lf (%lu / %lu); mallocs=%lu, frees=%lu\n",
+		(double) sampled_malloc_count / (double) total_sampled_count,
+		sampled_malloc_count,
+		total_sampled_count,
+		actual_malloc_count,
+		actual_free_count);
       }
     }
     inTimer = false;
@@ -82,6 +89,7 @@ extern "C" {
       initialized = true;
       initialize_me();
     }
+    actual_malloc_count++;
     in_malloc = true;
     auto ptr = ::malloc(sz);
     in_malloc = false;
@@ -93,6 +101,7 @@ extern "C" {
       initialized = true;
       initialize_me();
     }
+    actual_free_count++;
     in_free = true;
     ::free(ptr);
     in_free = false;
