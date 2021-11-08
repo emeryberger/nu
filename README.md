@@ -6,8 +6,10 @@
 
 (rhymes with "new")
 
-A simple tool for computing allocation intensity (that is, time spent in `malloc` and `free`).
+A simple tool for computing allocation intensity (that is, time spent
+in `malloc` and `free`) and basic allocation statistics (for now, just
+the raw total count of `malloc`s and `free`s).
 
 By [Emery Berger](https://emeryberger.com)
 
-_currently MacOS only_
+_NOTE: this is currently MacOS only._
