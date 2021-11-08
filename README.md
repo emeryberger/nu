@@ -38,3 +38,8 @@ malloc ratio = 0.611538 (795 / 1300); mallocs=38776636, frees=33334842
 malloc ratio = 0.605000 (847 / 1400); mallocs=43169626, frees=37102203
 ```
 
+* `malloc ratio` is the proportion of time that the program was allocating or freeing
+* the numerator is the number of samples when in `malloc` or `free`
+* the denominator is the total number of samples taken (100 per second)
+* `mallocs` = total calls to `malloc`
+* `frees` = total calls to `free`
