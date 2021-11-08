@@ -68,9 +68,9 @@ extern "C" {
     signal(SIGALRM, allocationIntensityTimer);
     struct itimerval tm;
     tm.it_value.tv_sec = 0;
-    tm.it_value.tv_usec = 2000;
+    tm.it_value.tv_usec = 10000;
     tm.it_interval.tv_sec = 0;
-    tm.it_interval.tv_usec = 2000;
+    tm.it_interval.tv_usec = 10000;
     setitimer(ITIMER_REAL, &tm, nullptr);
     //      setitimer(ITIMER_VIRTUAL, &tm, nullptr);
     ///      signal(SIGVTALRM, handleTimer);
