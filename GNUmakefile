@@ -1,5 +1,5 @@
 LIBNAME = nu
-C_SOURCES = src/source/libnu.cpp
+C_SOURCES = src/source/libnu.cpp src/source/decode_histogram.cpp
 
 .PHONY: vendor-deps
 
@@ -19,14 +19,14 @@ ifeq ($(shell uname -s),Darwin)
   else
     ARCH := -arch x86_64
   endif
-  CXXFLAGS := $(CXXFLAGS) -flto -ftls-model=initial-exec -ftemplate-depth=1024 $(ARCH) -compatibility_version 1 -current_version 1 -dynamiclib
+  LIB_CXXFLAGS := $(CXXFLAGS) -flto -ftls-model=initial-exec -ftemplate-depth=1024 $(ARCH) -compatibility_version 1 -current_version 1 -dynamiclib
   SED_INPLACE = -i ''
 
 else # non-Darwin
   LIBFILE := lib$(LIBNAME).so
   WRAPPER := vendor/Heap-Layers/wrappers/gnuwrapper.cpp
   INCLUDES := $(INCLUDES) -I/usr/include/nptl 
-  CXXFLAGS := $(CXXFLAGS) -fPIC -shared -Bsymbolic
+  LIB_CXXFLAGS := $(CXXFLAGS) -fPIC -shared -Bsymbolic
   RPATH_FLAGS :=
   SED_INPLACE = -i
 
@@ -36,10 +36,14 @@ SRC := src/source/lib$(LIBNAME).cpp $(WRAPPER) vendor/printf/printf.cpp
 
 OUTDIR=.
 
-all: $(OUTDIR)/$(LIBFILE)
+all: $(OUTDIR)/$(LIBFILE) decode_histogram
 
 $(OUTDIR)/$(LIBFILE): vendor/Heap-Layers $(SRC) $(C_SOURCES) GNUmakefile
-	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRC) -o $(OUTDIR)/$(LIBFILE) -ldl -lpthread
+	$(CXX) $(LIB_CXXFLAGS) $(INCLUDES) $(SRC) -o $(OUTDIR)/$(LIBFILE) -ldl -lpthread
+
+decode_histogram: $(C_SOURCES)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) src/source/decode_histogram.cpp -o $(OUTDIR)/decode_histogram
+
 
 clean:
 	rm -f $(OUTDIR)/$(LIBFILE) $(LIBNAME)/*.so $(LIBNAME)/*.dylib
