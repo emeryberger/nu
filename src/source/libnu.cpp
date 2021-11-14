@@ -34,11 +34,11 @@ static bool in_malloc { false };
 static bool in_free { false };
 static unsigned long actual_malloc_count { 0 };
 static unsigned long actual_free_count { 0 };
+static unsigned long sampled_malloc_count { 0 };
+static unsigned long total_sampled_count { 0 };
+static unsigned long malloc_hist[32];
 
 extern "C" {
-
-  static unsigned long sampled_malloc_count { 0 };
-  static unsigned long total_sampled_count { 0 };
 
   void allocationIntensityTimer(int)
   {
@@ -53,6 +53,18 @@ extern "C" {
 	      total_sampled_count,
 	      actual_malloc_count,
 	      actual_free_count);
+      for (int i = 0; i < sizeof(malloc_hist)/sizeof(decltype(malloc_hist[0])); i++) {
+	char toPrint = '_';
+	if (malloc_hist[i]) {
+	  if (ilog2(malloc_hist[i]) >= 26) {
+	    toPrint = 'A' + ilog2(malloc_hist[i]);
+	  } else {
+	    toPrint = 'a' + ilog2(malloc_hist[i]);
+	  }
+	}
+	fprintf(stderr, "%c", toPrint);
+      }
+      fprintf(stderr, "\n");
     }
   }
 }
@@ -72,9 +84,6 @@ extern "C" {
     tm.it_interval.tv_sec = 0;
     tm.it_interval.tv_usec = 10000;
     setitimer(ITIMER_REAL, &tm, nullptr);
-    //      setitimer(ITIMER_VIRTUAL, &tm, nullptr);
-    ///      signal(SIGVTALRM, handleTimer);
-    // signal(SIGVTALRM, allocationIntensityTimer);
   }
   
   void * __attribute__((always_inline)) xxmalloc(size_t sz) {
@@ -84,6 +93,7 @@ extern "C" {
     }
     actual_malloc_count++;
     in_malloc = true;
+    malloc_hist[ilog2(sz >> 3)]++;
     auto ptr = ::malloc(sz);
     in_malloc = false;
     return ptr;
