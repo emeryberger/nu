@@ -121,5 +121,3 @@ extern "C" {
   void xxmalloc_lock() {}
   void xxmalloc_unlock() {}
 };
-
-MAC_INTERPOSE(xxmalloc, malloc);
