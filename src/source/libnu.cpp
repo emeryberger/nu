@@ -37,9 +37,27 @@ static unsigned long actual_free_count { 0 };
 static unsigned long sampled_malloc_count { 0 };
 static unsigned long total_sampled_count { 0 };
 static unsigned long malloc_hist[32];
+static unsigned long free_hist[32];
+static unsigned long footprint { 0 };
+
+template <typename T>
+void printHist(T& hist) {
+  for (int i = 0; i < sizeof(hist)/sizeof(decltype(hist[0])); i++) {
+    char toPrint = '_';
+    if (hist[i]) {
+      if (ilog2(hist[i]) >= 26) {
+	toPrint = 'A' + ilog2(hist[i]);
+      } else {
+	toPrint = 'a' + ilog2(hist[i]);
+      }
+    }
+    fprintf(stderr, "%c", toPrint);
+  }
+}
 
 extern "C" {
 
+ 
   void allocationIntensityTimer(int)
   {
     total_sampled_count++;
@@ -47,23 +65,18 @@ extern "C" {
       sampled_malloc_count++;
     }
     if (total_sampled_count % 100 == 0) {
-      fprintf(stderr, "malloc ratio = %lf (%lu / %lu); mallocs=%lu, frees=%lu\n",
+      fprintf(stderr, "malloc ratio = %lf (%lu / %lu); mallocs=%lu, frees=%lu (footprint=%lu)\n",
 	      (double) sampled_malloc_count / (double) total_sampled_count,
 	      sampled_malloc_count,
 	      total_sampled_count,
 	      actual_malloc_count,
-	      actual_free_count);
-      for (int i = 0; i < sizeof(malloc_hist)/sizeof(decltype(malloc_hist[0])); i++) {
-	char toPrint = '_';
-	if (malloc_hist[i]) {
-	  if (ilog2(malloc_hist[i]) >= 26) {
-	    toPrint = 'A' + ilog2(malloc_hist[i]);
-	  } else {
-	    toPrint = 'a' + ilog2(malloc_hist[i]);
-	  }
-	}
-	fprintf(stderr, "%c", toPrint);
-      }
+	      actual_free_count,
+	      footprint);
+      fprintf(stderr, "malloc histogram: ");
+      printHist(malloc_hist);
+      fprintf(stderr, "\n");
+      fprintf(stderr, "free histogram:   ");
+      printHist(free_hist);
       fprintf(stderr, "\n");
     }
   }
@@ -93,9 +106,11 @@ extern "C" {
     }
     actual_malloc_count++;
     in_malloc = true;
-    malloc_hist[ilog2(sz >> 3)]++;
-    auto ptr = ::malloc(sz);
+    const auto ptr = ::malloc(sz);
     in_malloc = false;
+    const auto actual_sz = ilog2(::malloc_size(ptr) >> 3);
+    malloc_hist[actual_sz]++;
+    footprint += actual_sz;
     return ptr;
   }
   
@@ -105,9 +120,12 @@ extern "C" {
       initialize_me();
     }
     actual_free_count++;
+    const auto actual_sz = ilog2(::malloc_size(ptr) >> 3);
+    free_hist[actual_sz]++;
     in_free = true;
     ::free(ptr);
     in_free = false;
+    footprint -= actual_sz;
   }
   
   decltype(::malloc_size(nullptr)) xxmalloc_usable_size(void * ptr) {
