@@ -21,6 +21,8 @@
 
 #if defined(__APPLE__)
 #include "macinterpose.h"
+#else
+#include <dlfcn.h>
 #endif
 
 // For use by the replacement printf routines (see
@@ -86,10 +88,28 @@ extern "C" {
 
 extern "C" {
 
+  void * my_dlsym(void * handle, const char * symbol);
+  
   static std::atomic<bool> initialized = false;
-
+  static decltype(::malloc)* _malloc{0};
+  static decltype(::free)* _free{0};
+#if defined(__APPLE__)
+  static decltype(::malloc_size)* _malloc_usable_size{0};
+#else
+  static decltype(::malloc_usable_size)* _malloc_usable_size{0};
+#endif
+  
   static void initialize_me()
   {
+#if defined(__APPLE__)
+    _malloc = ::malloc;
+    _free = ::free;
+    _malloc_usable_size = ::malloc_size;
+#else
+    _malloc = (decltype(::malloc) *) my_dlsym(RTLD_NEXT, "malloc");
+    _free = (decltype(::free) *) my_dlsym(RTLD_NEXT, "free");
+    _malloc_usable_size = (decltype(::malloc_usable_size) *) my_dlsym(RTLD_NEXT, "malloc_usable_size");
+#endif
     signal(SIGALRM, allocationIntensityTimer);
     struct itimerval tm;
     tm.it_value.tv_sec = 0;
@@ -97,18 +117,28 @@ extern "C" {
     tm.it_interval.tv_sec = 0;
     tm.it_interval.tv_usec = 10000;
     setitimer(ITIMER_REAL, &tm, nullptr);
+    initialized = true;
   }
+  
+#if defined(__APPLE__)
+  decltype(::malloc_size(nullptr)) xxmalloc_usable_size(void * ptr) {
+    return _malloc_usable_size(ptr);
+  }
+#else
+  decltype(::malloc_usable_size(nullptr)) xxmalloc_usable_size(void * ptr) {
+    return _malloc_usable_size(ptr);
+  }
+#endif
   
   void * __attribute__((always_inline)) xxmalloc(size_t sz) {
     if (!initialized) {
-      initialized = true;
       initialize_me();
     }
     actual_malloc_count++;
     in_malloc = true;
-    const auto ptr = ::malloc(sz);
+    const auto ptr = _malloc(sz);
     in_malloc = false;
-    const auto actual_sz = ilog2(::malloc_size(ptr) >> 3);
+    const auto actual_sz = ilog2(::xxmalloc_usable_size(ptr) >> 3);
     malloc_hist[actual_sz]++;
     footprint += actual_sz;
     return ptr;
@@ -116,20 +146,15 @@ extern "C" {
   
   void __attribute__((always_inline)) xxfree(void * ptr) {
     if (!initialized) {
-      initialized = true;
       initialize_me();
     }
     actual_free_count++;
-    const auto actual_sz = ilog2(::malloc_size(ptr) >> 3);
+    const auto actual_sz = ilog2(::xxmalloc_usable_size(ptr) >> 3);
     free_hist[actual_sz]++;
     in_free = true;
-    ::free(ptr);
+    _free(ptr);
     in_free = false;
     footprint -= actual_sz;
-  }
-  
-  decltype(::malloc_size(nullptr)) xxmalloc_usable_size(void * ptr) {
-    return ::malloc_size(ptr);
   }
 
   void * xxmemalign(size_t alignment, size_t size) {
