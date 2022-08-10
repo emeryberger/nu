@@ -11,16 +11,23 @@ in `malloc` and `free`) and basic allocation statistics (for now, just
 the raw total count of `malloc`s and `free`s), as well as a compact
 summary of the number of objects per size.
 
+Works on Linux and Mac platforms.
+
 By [Emery Berger](https://emeryberger.com)
 
-_NOTE: this is currently MacOS only._
 
 ## Usage
 
 Build with `make`, then:
 
+(Mac)
 ```
 DYLD_INSERT_LIBRARIES=./libnu.dylib program_to_profile
+```
+
+(Linux)
+```
+LD_PRELOAD=./libnu.so program_to_profile
 ```
 
 ## Example output
