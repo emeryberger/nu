@@ -11,8 +11,9 @@
 
 #if defined(__APPLE__)
 #include <malloc/malloc.h>
-#elif defined(linux)
+#else
 #include <malloc.h>
+#include <sys/time.h>
 #endif
 
 #include <cstddef>
